@@ -20,7 +20,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20.18.1'
 
       # 🚀 Install Expo & EAS with cache + auth in one line
       - name: Install Expo/EAS
