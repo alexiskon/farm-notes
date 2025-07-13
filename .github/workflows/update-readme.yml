@@ -1,4 +1,4 @@
-name: EAS Update & Refresh QR
+name: Refresh QR
 
 on:
   push:
@@ -23,22 +23,20 @@ jobs:
         with:
           node-version: '20.18.1'
 
-      - name: Install Expo/EAS
-        uses: expo/expo-github-action@v8
-        with:
-          token: ${{ secrets.EXPO_TOKEN }}
-          eas-version: latest
+      - name: Install Expo CLI
+        run: npm install -g expo-cli
 
       - name: Install JS deps
         run: yarn install --frozen-lockfile
 
       - name: Publish update on branch "main"
-        run: npx eas update --auto --branch main --message "${{ github.sha }}"
+        run: npx expo publish --non-interactive
 
-      - name: Extract Expo URL
+      - name: Extract Expo URL from publish output
         id: expo-url
         run: |
-          URL=$(jq -r '.expo.updates.url' app.json)
+          # expo publish output includes the URL, extract it:
+          URL=$(npx expo publish:history --limit 1 --json | jq -r '.[0].releaseChannelUrl')
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       - name: Generate QR PNG
