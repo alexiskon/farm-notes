@@ -41,37 +41,26 @@ jobs:
           URL=$(jq -r '.expo.updates.url' app.json)
           echo "url=$URL" >> $GITHUB_OUTPUT
 
-      - name: Generate base64 QR
+      - name: Generate QR PNG
         run: |
           yarn add --silent qrcode
           node - <<'EOF'
           const fs = require('fs');
           const QRCode = require('qrcode');
           const url = process.env.QR_URL;
-          QRCode.toDataURL(url).then(data => fs.writeFileSync('qr64.txt', data));
+          QRCode.toFile('qr.png', url, function (err) {
+            if (err) throw err;
+          });
           EOF
         env:
           QR_URL: ${{ steps.expo-url.outputs.url }}
 
-      - name: Debug QR data
-        run: cat qr64.txt
-
       - name: Update README
         run: |
-          QR=$(cat qr64.txt)
-          sed -i 's|!\[Expo QR\](placeholder.png)|![Expo QR]('"$QR"')|g' README.md
+          sed -i 's|!\[Expo QR\](placeholder.png)|![Expo QR](qr.png)|g' README.md
 
-      - name: Set up git user
+      - name: Commit README and QR image if changed
         run: |
-          git config user.name "Alexandros Kontos"
-          git config user.email "alexiskon01@gmail.com"
-
-      - name: Set up git auth for push
-        run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/alexiskon/farm-notes.git
-
-      - name: Commit README if changed
-        run: |
-          git add README.md
+          git add README.md qr.png
           git diff --cached --quiet || git commit -m "docs: refresh Expo QR for ${{ github.sha }}"
           git push origin main
