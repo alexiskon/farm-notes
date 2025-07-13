@@ -62,7 +62,10 @@ jobs:
           QR=$(cat qr64.txt)
           sed -i 's|!\[Expo QR\](.*)|![Expo QR]('"$QR"')|g' README.md
 
-      # ⑤ Commit the changed README (skip if nothing changed)
+      - name: Set up git auth for push
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/alexiskon/farm-notes.git
+
       - name: Commit README if changed
         run: |
           git config user.name  "alexiskon"
