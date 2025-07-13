@@ -1,0 +1,60 @@
+name: Publish Expo & update QR in README
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish-and-update-readme:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Login to Expo using token
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx expo login --token $EXPO_TOKEN
+
+      - name: Publish Expo app
+        run: npx expo publish --non-interactive
+
+      - name: Get Expo publish URL
+        id: get-url
+        run: |
+          EXPO_URL=$(npx expo url:show)
+          echo "url=$EXPO_URL" >> $GITHUB_OUTPUT
+
+      - name: Generate QR code PNG as base64
+        run: |
+          npm install qrcode
+          node -e "
+            const QRCode = require('qrcode');
+            QRCode.toDataURL('${{ steps.get-url.outputs.url }}').then(url => {
+              require('fs').writeFileSync('qr-base64.txt', url);
+            });
+          "
+
+      - name: Update README with QR code image
+        run: |
+          QR_BASE64=$(cat qr-base64.txt)
+          # Replace existing QR image markdown with new base64 image in README.md
+          sed -i 's|!\[Expo QR\](.*)|![Expo QR]('"$QR_BASE64"')|g' README.md
+
+      - name: Commit and push updated README
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add README.md
+          git commit -m "Update Expo QR code for commit ${{ github.sha }}" || echo "No changes to commit"
+          git push
