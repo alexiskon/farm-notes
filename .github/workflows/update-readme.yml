@@ -1,56 +1,72 @@
-name: Publish Expo & update QR in README
+name: EAS Update & refresh QR
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  publish-and-update-readme:
+  ota-and-readme:
     runs-on: ubuntu-latest
+
+    # Make the Expo token available to every step
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      CI: 1                       # tells eas to run headless
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '18'
 
-      - name: Install dependencies
-        run: npm install
+      # 🚀 Install Expo & EAS with cache + auth in one line
+      - name: Install Expo/EAS
+        uses: expo/expo-github-action@v8       # handles caching & expo-cli/eas-cli
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+          eas-version: latest
 
-      - name: Publish Expo app
-        run: npx expo publish --non-interactive
+      - name: Install JS deps
+        run: yarn install --frozen-lockfile
 
-      - name: Get Expo publish URL
-        id: get-url
+      # ① Publish an OTA update for the current commit
+      - name: Publish update on branch "main"
+        run: npx eas update --auto --branch main --message "${{ github.sha }}"
+
+      # ② Read the permanent URL from app.json (added by eas update:configure)
+      - name: Extract Expo URL
+        id: expo-url
         run: |
-          EXPO_URL=$(npx expo url:show)
-          echo "url=$EXPO_URL" >> $GITHUB_OUTPUT
+          URL=$(jq -r '.expo.updates.url' app.json)
+          echo "url=$URL" >> $GITHUB_OUTPUT
 
-      - name: Generate QR code PNG as base64
+      # ③ Turn that URL into a base‑64 PNG (inline image)
+      - name: Generate base64 QR
         run: |
-          npm install qrcode
-          node -e "
-            const QRCode = require('qrcode');
-            QRCode.toDataURL('${{ steps.get-url.outputs.url }}').then(url => {
-              require('fs').writeFileSync('qr-base64.txt', url);
-            });
-          "
+          yarn add --silent qrcode
+          node - <<'EOF'
+          const fs = require('fs');
+          const QRCode = require('qrcode');
+          const url = process.env.QR_URL;
+          QRCode.toDataURL(url).then(data => fs.writeFileSync('qr64.txt', data));
+          EOF
+        env:
+          QR_URL: ${{ steps.expo-url.outputs.url }}
 
-      - name: Update README with QR code image
+      # ④ Replace the placeholder line inside README.md
+      - name: Update README
         run: |
-          QR_BASE64=$(cat qr-base64.txt)
-          sed -i 's|!\[Expo QR\](.*)|![Expo QR]('"$QR_BASE64"')|g' README.md
+          QR=$(cat qr64.txt)
+          sed -i 's|!\[Expo QR\](.*)|![Expo QR]('"$QR"')|g' README.md
 
-      - name: Commit and push updated README
+      # ⑤ Commit the changed README (skip if nothing changed)
+      - name: Commit README if changed
         run: |
-          git config user.name "github-actions"
+          git config user.name  "github-actions"
           git config user.email "github-actions@github.com"
           git add README.md
-          git commit -m "Update Expo QR code for commit ${{ github.sha }}" || echo "No changes to commit"
+          git diff --cached --quiet || git commit -m "docs: refresh Expo QR for ${{ github.sha }}"
           git push
