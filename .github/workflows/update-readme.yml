@@ -118,7 +118,7 @@ jobs:
       - name: Update QR code in reader.md
         run: |
           QR_LINK="![Scan in Expo Go](https://qr.expo.dev/eas-update?projectId=${EXPO_PROJECT_ID}&channel=main)"
-          FILE=reader.md
+          FILE=README.md
 
           # Remove old QR code section if exists (between markers)
           sed -i '/<!-- EXPO_QR_START -->/,/<!-- EXPO_QR_END -->/d' "$FILE"
