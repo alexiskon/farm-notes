@@ -91,7 +91,6 @@ jobs:
 
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      # set once here so you can reuse it below
       EXPO_PROJECT_ID: <YOUR_PROJECT_ID>
 
     steps:
@@ -115,15 +114,18 @@ jobs:
             --branch main \
             --non-interactive \
             --message "CI update $GITHUB_SHA"
-          # --auto bundles the JS, uploads it and marks it active :contentReference[oaicite:1]{index=1}
 
-      - name: Ensure QR link is in reader.md
+      - name: Update QR code in reader.md
         run: |
           QR_LINK="![Scan in Expo Go](https://qr.expo.dev/eas-update?projectId=${EXPO_PROJECT_ID}&channel=main)"
           FILE=reader.md
-          if ! grep -q "qr.expo.dev/eas-update" "$FILE"; then
-            echo -e "\n## Live preview\n\n${QR_LINK}\n" >> "$FILE"
-          fi
+
+          # Remove old QR code section if exists (between markers)
+          sed -i '/<!-- EXPO_QR_START -->/,/<!-- EXPO_QR_END -->/d' "$FILE"
+
+          # Append new QR code section at the end
+          echo -e "\n<!-- EXPO_QR_START -->\n## Live preview\n\n${QR_LINK}\n<!-- EXPO_QR_END -->" >> "$FILE"
+
       - name: Commit changes (if any)
         run: |
           git diff --quiet || {

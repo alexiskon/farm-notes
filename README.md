@@ -1,7 +1,7 @@
-## 📱 Test this Expo app
+# Farm Notes App
 
-Scan this QR code **with your phone camera**:
+Welcome to the Farm Notes Expo project.
+
+## Live preview
 
 ![Scan in Expo Go](https://qr.expo.dev/eas-update?projectId=6811dcaf-2195-4a0e-ba6b-b561e60da885&channel=main)
-
-> Requires Expo Go installed on your device.
