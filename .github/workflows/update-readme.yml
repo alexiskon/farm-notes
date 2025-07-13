@@ -53,10 +53,18 @@ jobs:
         env:
           QR_URL: ${{ steps.expo-url.outputs.url }}
 
+      - name: Debug QR data
+        run: cat qr64.txt
+
       - name: Update README
         run: |
           QR=$(cat qr64.txt)
-          sed -i 's|!\[Expo QR\](.*)|![Expo QR]('"$QR"')|g' README.md
+          sed -i 's|!\[Expo QR\](placeholder.png)|![Expo QR]('"$QR"')|g' README.md
+
+      - name: Set up git user
+        run: |
+          git config user.name "Alexandros Kontos"
+          git config user.email "alexiskon01@gmail.com"
 
       - name: Set up git auth for push
         run: |
@@ -64,8 +72,6 @@ jobs:
 
       - name: Commit README if changed
         run: |
-          git config user.name "Alexandros Kontos"
-          git config user.email "alexiskon@users.noreply.github.com"
           git add README.md
           git diff --cached --quiet || git commit -m "docs: refresh Expo QR for ${{ github.sha }}"
           git push origin main
