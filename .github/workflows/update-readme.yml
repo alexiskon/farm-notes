@@ -128,6 +128,10 @@ jobs:
           # Append new QR code section at the end
           echo -e "\n<!-- EXPO_QR_START -->\n## Live preview\n\n${QR_LINK}\n<!-- EXPO_QR_END -->" >> "$FILE"
 
+      - name: Authenticate Git for Push
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/alexiskon/farm-notes.git
+
       - name: Commit changes (if any)
         run: |
           git diff --quiet || {
