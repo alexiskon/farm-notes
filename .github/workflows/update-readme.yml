@@ -1,4 +1,4 @@
-name: EAS Update & refresh QR
+name: EAS Update & refresh QR
 
 on:
   push:
@@ -8,23 +8,23 @@ jobs:
   ota-and-readme:
     runs-on: ubuntu-latest
 
-    # Make the Expo token available to every step
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      CI: 1                       # tells eas to run headless
+      CI: 1 
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '20.18.1'
 
-      # 🚀 Install Expo & EAS with cache + auth in one line
       - name: Install Expo/EAS
-        uses: expo/expo-github-action@v8       # handles caching & expo-cli/eas-cli
+        uses: expo/expo-github-action@v8
         with:
           token: ${{ secrets.EXPO_TOKEN }}
           eas-version: latest
@@ -32,18 +32,15 @@ jobs:
       - name: Install JS deps
         run: yarn install --frozen-lockfile
 
-      # ① Publish an OTA update for the current commit
       - name: Publish update on branch "main"
         run: npx eas update --auto --branch main --message "${{ github.sha }}"
 
-      # ② Read the permanent URL from app.json (added by eas update:configure)
       - name: Extract Expo URL
         id: expo-url
         run: |
           URL=$(jq -r '.expo.updates.url' app.json)
           echo "url=$URL" >> $GITHUB_OUTPUT
 
-      # ③ Turn that URL into a base‑64 PNG (inline image)
       - name: Generate base64 QR
         run: |
           yarn add --silent qrcode
@@ -56,7 +53,6 @@ jobs:
         env:
           QR_URL: ${{ steps.expo-url.outputs.url }}
 
-      # ④ Replace the placeholder line inside README.md
       - name: Update README
         run: |
           QR=$(cat qr64.txt)
@@ -66,9 +62,15 @@ jobs:
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/alexiskon/farm-notes.git
 
+      - name: Debug git config and remote
+        run: |
+          git remote -v
+          git config user.name
+          git config user.email
+
       - name: Commit README if changed
         run: |
-          git config user.name  "alexiskon"
+          git config user.name "alexiskon"
           git config user.email "alexiskon@users.noreply.github.com"
           git add README.md
           git diff --cached --quiet || git commit -m "docs: refresh Expo QR for ${{ github.sha }}"
