@@ -59,6 +59,11 @@ jobs:
         run: |
           sed -i 's|!\[Expo QR\](placeholder.png)|![Expo QR](qr.png)|g' README.md
 
+      - name: Set up git user
+        run: |
+          git config user.name "Alexandros Kontos"
+          git config user.email "alexiskon01@gmail.com"
+
       - name: Commit README and QR image if changed
         run: |
           git add README.md qr.png
