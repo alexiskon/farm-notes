@@ -1,80 +1,135 @@
-name: Expo Publish & Refresh QR
+# name: Expo Publish & Refresh QR
+
+# on:
+#   push:
+#     branches: [main]
+
+# jobs:
+#   publish-and-update-readme:
+#     runs-on: ubuntu-latest
+
+#     env:
+#       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+#       CI: 1
+
+#     steps:
+#       - name: Checkout repo
+#         uses: actions/checkout@v4
+#         with:
+#           persist-credentials: false
+
+#       - name: Set up Node
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: '20'
+
+#       - name: Install dependencies
+#         run: yarn install --frozen-lockfile
+
+#       - name: Install legacy Expo CLI v5
+#         run: yarn global add expo-cli@5
+
+#       - name: Authenticate Expo CLI
+#         run: expo login --token $EXPO_TOKEN
+
+#       - name: Publish app to Expo
+#         run: expo publish
+
+#       - name: Get Expo project URL
+#         id: expo-url
+#         run: |
+#           SLUG=$(jq -r '.expo.slug' app.json)
+#           OWNER=$(jq -r '.expo.owner // empty' app.json)
+#           if [ -z "$OWNER" ]; then
+#             OWNER=$(expo whoami)
+#           fi
+#           URL="https://expo.dev/@$OWNER/$SLUG"
+#           echo "url=$URL" >> $GITHUB_OUTPUT
+
+#       - name: Generate QR PNG
+#         run: |
+#           yarn add --silent qrcode
+#           node - <<'EOF'
+#           const fs = require('fs');
+#           const QRCode = require('qrcode');
+#           const url = process.env.QR_URL;
+#           QRCode.toFile('qr.png', url, function (err) {
+#             if (err) throw err;
+#           });
+#           EOF
+#         env:
+#           QR_URL: ${{ steps.expo-url.outputs.url }}
+
+#       - name: Update README.md with QR code
+#         run: |
+#           sed -i 's|!\[Expo QR\](.*)|![Expo QR](qr.png)|g' README.md
+
+#       - name: Set up Git user
+#         run: |
+#           git config user.name "Alexandros Kontos"
+#           git config user.email "alexiskon@users.noreply.github.com"
+
+#       - name: Authenticate Git for Push
+#         run: |
+#           git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/alexiskon/farm-notes.git
+
+#       - name: Commit and push if README or QR changed
+#         run: |
+#           git add README.md qr.png
+#           git diff --cached --quiet || git commit -m "docs: refresh Expo QR for ${{ github.sha }}"
+#           git push origin main
+
+name: Publish Expo preview
 
 on:
   push:
     branches: [main]
 
 jobs:
-  publish-and-update-readme:
+  preview:
     runs-on: ubuntu-latest
 
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      CI: 1
+      # set once here so you can reuse it below
+      EXPO_PROJECT_ID: <YOUR_PROJECT_ID>
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 18
 
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+      - name: Install deps
+        run: npm ci
 
-      - name: Install legacy Expo CLI v5
-        run: yarn global add expo-cli@5
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
 
-      - name: Authenticate Expo CLI
-        run: expo login --token $EXPO_TOKEN
-
-      - name: Publish app to Expo
-        run: expo publish
-
-      - name: Get Expo project URL
-        id: expo-url
+      - name: Publish update to 'main' channel
         run: |
-          SLUG=$(jq -r '.expo.slug' app.json)
-          OWNER=$(jq -r '.expo.owner // empty' app.json)
-          if [ -z "$OWNER" ]; then
-            OWNER=$(expo whoami)
+          eas update --auto \
+            --branch main \
+            --non-interactive \
+            --message "CI update $GITHUB_SHA"
+          # --auto bundles the JS, uploads it and marks it active :contentReference[oaicite:1]{index=1}
+
+      - name: Ensure QR link is in reader.md
+        run: |
+          QR_LINK="![Scan in Expo Go](https://qr.expo.dev/eas-update?projectId=${EXPO_PROJECT_ID}&channel=main)"
+          FILE=reader.md
+          if ! grep -q "qr.expo.dev/eas-update" "$FILE"; then
+            echo -e "\n## Live preview\n\n${QR_LINK}\n" >> "$FILE"
           fi
-          URL="https://expo.dev/@$OWNER/$SLUG"
-          echo "url=$URL" >> $GITHUB_OUTPUT
-
-      - name: Generate QR PNG
+      - name: Commit changes (if any)
         run: |
-          yarn add --silent qrcode
-          node - <<'EOF'
-          const fs = require('fs');
-          const QRCode = require('qrcode');
-          const url = process.env.QR_URL;
-          QRCode.toFile('qr.png', url, function (err) {
-            if (err) throw err;
-          });
-          EOF
-        env:
-          QR_URL: ${{ steps.expo-url.outputs.url }}
-
-      - name: Update README.md with QR code
-        run: |
-          sed -i 's|!\[Expo QR\](.*)|![Expo QR](qr.png)|g' README.md
-
-      - name: Set up Git user
-        run: |
-          git config user.name "Alexandros Kontos"
-          git config user.email "alexiskon@users.noreply.github.com"
-
-      - name: Authenticate Git for Push
-        run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/alexiskon/farm-notes.git
-
-      - name: Commit and push if README or QR changed
-        run: |
-          git add README.md qr.png
-          git diff --cached --quiet || git commit -m "docs: refresh Expo QR for ${{ github.sha }}"
-          git push origin main
+          git diff --quiet || {
+            git config user.name "Alexandros Kontos"
+            git config user.email "alexiskon@users.noreply.github.com"
+            git add reader.md
+            git commit -m "Add Expo preview QR for $GITHUB_SHA"
+            git push
+          }

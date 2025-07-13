@@ -26,6 +26,7 @@
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
+        "RECORD_AUDIO",
         "RECORD_AUDIO"
       ]
     },
@@ -36,7 +37,14 @@
       "expo-router"
     ],
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "6811dcaf-2195-4a0e-ba6b-b561e60da885"
+      }
+    },
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/6811dcaf-2195-4a0e-ba6b-b561e60da885"
     }
   }
 }
