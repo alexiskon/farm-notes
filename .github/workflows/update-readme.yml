@@ -78,7 +78,6 @@
 #           git add README.md qr.png
 #           git diff --cached --quiet || git commit -m "docs: refresh Expo QR for ${{ github.sha }}"
 #           git push origin main
-
 name: Publish Expo preview
 
 on:
@@ -91,7 +90,7 @@ jobs:
 
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      EXPO_PROJECT_ID: <YOUR_PROJECT_ID>
+      EXPO_PROJECT_ID: ${{ secrets.EXPO_PROJECT_ID }}
 
     steps:
       - name: Checkout repo
@@ -130,14 +129,17 @@ jobs:
 
       - name: Authenticate Git for Push
         run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/lexiskon/farm-notes.git
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/alexiskon/farm-notes.git
 
       - name: Commit changes (if any)
         run: |
-          git diff --quiet || {
-            git config user.name "Alexandros Kontos"
-            git config user.email "alexiskon@users.noreply.github.com"
-            git add README.md
+          git config user.name "Alexandros Kontos"
+          git config user.email "alexiskon@users.noreply.github.com"
+          git add README.md
+          if ! git diff --cached --quiet; then
             git commit -m "Add Expo preview QR for $GITHUB_SHA"
-            git push
-          }
+            git push origin HEAD:main
+          else
+            echo "No changes to commit"
+          fi
+
