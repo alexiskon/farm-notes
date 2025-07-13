@@ -18,10 +18,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Node
+      - name: Set up Node (v16 for expo-cli@5 compatibility)
         uses: actions/setup-node@v4
         with:
-          node-version: '20.18.1'
+          node-version: '16'
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
@@ -35,15 +35,15 @@ jobs:
       - name: Publish app to Expo
         run: expo publish
 
-      - name: Extract Expo project URL
+      - name: Get Expo project URL
         id: expo-url
         run: |
-          URL=$(expo whoami | grep https || true)
-          if [ -z "$URL" ]; then
-            URL=$(jq -r '.expo.slug' app.json)
-            USERNAME=$(expo whoami | grep "Logged in as" | awk '{print $NF}')
-            URL="https://expo.dev/@$USERNAME/$URL"
+          SLUG=$(jq -r '.expo.slug' app.json)
+          OWNER=$(jq -r '.expo.owner // empty' app.json)
+          if [ -z "$OWNER" ]; then
+            OWNER=$(expo whoami)
           fi
+          URL="https://expo.dev/@$OWNER/$SLUG"
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       - name: Generate QR PNG
