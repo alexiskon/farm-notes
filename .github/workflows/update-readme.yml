@@ -1,11 +1,11 @@
-name: EAS Update & Refresh QR
+name: Expo Publish & Refresh QR
 
 on:
   push:
     branches: [main]
 
 jobs:
-  ota-and-readme:
+  publish-and-update-readme:
     runs-on: ubuntu-latest
 
     env:
@@ -23,22 +23,27 @@ jobs:
         with:
           node-version: '20.18.1'
 
-      - name: Install Expo/EAS
-        uses: expo/expo-github-action@v8
-        with:
-          token: ${{ secrets.EXPO_TOKEN }}
-          eas-version: latest
-
-      - name: Install JS deps
+      - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Publish update on branch "main"
-        run: npx eas update --auto --branch main --message "${{ github.sha }}"
+      - name: Install legacy Expo CLI v5
+        run: yarn global add expo-cli@5
 
-      - name: Extract Expo URL
+      - name: Authenticate Expo CLI
+        run: expo login --token $EXPO_TOKEN
+
+      - name: Publish app to Expo
+        run: expo publish
+
+      - name: Extract Expo project URL
         id: expo-url
         run: |
-          URL=$(jq -r '.expo.updates.url' app.json)
+          URL=$(expo whoami | grep https || true)
+          if [ -z "$URL" ]; then
+            URL=$(jq -r '.expo.slug' app.json)
+            USERNAME=$(expo whoami | grep "Logged in as" | awk '{print $NF}')
+            URL="https://expo.dev/@$USERNAME/$URL"
+          fi
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       - name: Generate QR PNG
@@ -55,20 +60,20 @@ jobs:
         env:
           QR_URL: ${{ steps.expo-url.outputs.url }}
 
-      - name: Update README
+      - name: Update README.md with QR code
         run: |
           sed -i 's|!\[Expo QR\](.*)|![Expo QR](qr.png)|g' README.md
 
-      - name: Set up git user
+      - name: Set up Git user
         run: |
           git config user.name "Alexandros Kontos"
           git config user.email "alexiskon@users.noreply.github.com"
 
-      - name: Set up git auth for push
+      - name: Authenticate Git for Push
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GH_PAT }}@github.com/alexiskon/farm-notes.git
 
-      - name: Commit README and QR image if changed
+      - name: Commit and push if README or QR changed
         run: |
           git add README.md qr.png
           git diff --cached --quiet || git commit -m "docs: refresh Expo QR for ${{ github.sha }}"
