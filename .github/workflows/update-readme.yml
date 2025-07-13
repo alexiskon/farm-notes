@@ -8,6 +8,8 @@ on:
 jobs:
   publish-and-update-readme:
     runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -20,11 +22,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-
-      - name: Login to Expo using token
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: npx expo login --token $EXPO_TOKEN
 
       - name: Publish Expo app
         run: npx expo publish --non-interactive
@@ -48,7 +45,6 @@ jobs:
       - name: Update README with QR code image
         run: |
           QR_BASE64=$(cat qr-base64.txt)
-          # Replace existing QR image markdown with new base64 image in README.md
           sed -i 's|!\[Expo QR\](.*)|![Expo QR]('"$QR_BASE64"')|g' README.md
 
       - name: Commit and push updated README
