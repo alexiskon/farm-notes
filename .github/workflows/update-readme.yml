@@ -115,7 +115,7 @@ jobs:
             --non-interactive \
             --message "CI update $GITHUB_SHA"
 
-      - name: Update QR code in reader.md
+      - name: Update QR code in README.md
         run: |
           QR_LINK="![Scan in Expo Go](https://qr.expo.dev/eas-update?projectId=${EXPO_PROJECT_ID}&channel=main)"
           FILE=README.md
@@ -131,7 +131,7 @@ jobs:
           git diff --quiet || {
             git config user.name "Alexandros Kontos"
             git config user.email "alexiskon@users.noreply.github.com"
-            git add reader.md
+            git add README.md
             git commit -m "Add Expo preview QR for $GITHUB_SHA"
             git push
           }
