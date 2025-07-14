@@ -10,7 +10,7 @@ jobs:
 
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      EXPO_PROJECT_ID: 6811dcaf-2195-4a0e-ba6b-b561e60da885 # <-- Replace with your real projectId
+      EXPO_PROJECT_ID: 6811dcaf-2195-4a0e-ba6b-b561e60da885
 
     steps:
       - name: Checkout repo
@@ -27,15 +27,15 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli
 
-      - name: Install jq (for JSON parsing)
+      - name: Install jq (for parsing JSON)
         run: sudo apt-get install -y jq
 
       - name: Publish update to 'main' channel
         id: publish
         run: |
-          OUTPUT=$(eas update --auto --branch main --non-interactive --json --message "CI update $GITHUB_SHA")
+          OUTPUT=$(eas update --auto --non-interactive --json --message "CI update $GITHUB_SHA")
           echo "$OUTPUT" > update.json
-          UPDATE_ID=$(cat update.json | jq -r '.[0].id')
+          UPDATE_ID=$(jq -r '.[0].id' update.json)
           echo "UPDATE_ID=$UPDATE_ID" >> "$GITHUB_OUTPUT"
 
       - name: Generate QR code URL
@@ -50,7 +50,6 @@ jobs:
           FILE=README.md
 
           if grep -q '<!-- EXPO_QR_START -->' "$FILE"; then
-            # Replace content between markers
             sed -i "/<!-- EXPO_QR_START -->/,/<!-- EXPO_QR_END -->/c\\
             <!-- EXPO_QR_START -->\\
             ## Live preview\\
@@ -68,7 +67,7 @@ jobs:
           git config user.email "alexiskon@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/alexiskon/farm-notes.git
 
-      - name: Commit QR code change
+      - name: Commit README.md if QR changed
         run: |
           git diff --quiet || {
             git add README.md
