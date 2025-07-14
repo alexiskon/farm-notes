@@ -1,5 +1,5 @@
   <!-- EXPO_QR_START -->
   ## Live preview
   
-  ![Scan in Expo Go](https://qr.expo.dev/eas-update?updateId=dab1155a-b38b-482d-a6ae-12b2724b6080)
+  ![Scan in Expo Go](https://qr.expo.dev/eas-update?updateId=a55b0c13-5f54-4faf-a9dc-1381f3c4db38)
   <!-- EXPO_QR_END -->
