@@ -30,10 +30,16 @@ jobs:
       - name: Install jq (for parsing JSON)
         run: sudo apt-get install -y jq
 
+      - name: Ensure README.md exists
+        run: |
+          if [ ! -f README.md ]; then
+            echo "# Farm Notes" > README.md
+          fi
+
       - name: Publish update to 'main' channel
         id: publish
         run: |
-          OUTPUT=$(eas update --auto --non-interactive --json --message "CI update $GITHUB_SHA")
+          OUTPUT=$(eas update --branch main --auto --non-interactive --json --message "CI update $GITHUB_SHA")
           echo "$OUTPUT" > update.json
           UPDATE_ID=$(jq -r '.[0].id' update.json)
           echo "UPDATE_ID=$UPDATE_ID" >> "$GITHUB_OUTPUT"

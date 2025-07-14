@@ -10,8 +10,5 @@
     "preview": {},
     "production": {}
   },
-  "submit": {},
-  "update": {
-    "channel": "main"
-  }
+  "submit": {}
 }
