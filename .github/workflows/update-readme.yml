@@ -10,7 +10,7 @@ jobs:
 
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      EXPO_PROJECT_ID: 6811dcaf-2195-4a0e-ba6b-b561e60da885 # Replace with your actual project ID
+      EXPO_PROJECT_ID: 6811dcaf-2195-4a0e-ba6b-b561e60da885 # Replace with your real one
 
     steps:
       - name: Checkout repo
@@ -31,17 +31,17 @@ jobs:
         run: sudo apt-get install jq
 
       - name: Publish update to 'main' channel
+        id: publish
         run: |
-          eas update --auto \
-            --branch main \
-            --non-interactive \
-            --message "CI update $GITHUB_SHA"
+          OUTPUT=$(eas update --auto --branch main --non-interactive --json --message "CI update $GITHUB_SHA")
+          echo "$OUTPUT" > update.json
+          GROUP_ID=$(cat update.json | jq -r '.[0].group')
+          echo "GROUP_ID=$GROUP_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Get latest update QR code
+      - name: Construct QR code URL
         id: get_qr
         run: |
-          UPDATE_JSON=$(eas update:view --branch main --latest --json)
-          QR_URL=$(echo "$UPDATE_JSON" | jq -r '.qrCodeUrl')
+          QR_URL="https://qr.expo.dev/eas-update?projectId=${{ env.EXPO_PROJECT_ID }}&group=${{ steps.publish.outputs.GROUP_ID }}"
           echo "QR_URL=$QR_URL" >> "$GITHUB_OUTPUT"
 
       - name: Update README.md with QR code
@@ -59,7 +59,6 @@ jobs:
             <!-- EXPO_QR_END -->
             " "$FILE"
           else
-            # Append the section if markers are not present
             echo -e "\n<!-- EXPO_QR_START -->\n## Live preview\n\n![Scan in Expo Go](${QR_URL})\n<!-- EXPO_QR_END -->" >> "$FILE"
           fi
 
